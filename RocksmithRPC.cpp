@@ -78,7 +78,11 @@ void UpdatePresence(const char* state, const char* details, const char* largeIma
 
    if (!(strlen(largeImageText) < 1))
         discordPresence.largeImageText = largeImageText;
-    discordPresence.largeImageKey = "album_cover";
+
+   if (discordPresence.state == "Browsing Menus" || discordPresence.state == "Finished a Song")
+        discordPresence.largeImageKey = "rocksmithlogo2";
+   else
+        discordPresence.largeImageKey = "album_cover";
     discordPresence.smallImageKey = "rocksmithlogo";
     discordPresence.smallImageText = "Created by sallad/OhhLoz";
 
