@@ -22,5 +22,11 @@
 *.a
 *.lib
 
+# Executables
+*.exe
+*.out
+*.app
+
+# Project Specific
 include/discord_register.h
-bin/send-presence.exe
+.vscode

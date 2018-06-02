@@ -1,14 +1,16 @@
 #include "include/discord_rpc.h"
 #include <cstdio>
+#include <string>
 #include <iostream>
 #include <fstream>
+#include <windows.h>
 
-int main(int argc, char const *argv[])
+const char * GetActiveWindowTitle()
 {
-    //Client ID: 452428491359649793
-    std::cout << "Initialising Discord Listeners" << std::endl;
-    InitDiscord();
-    return 0;
+ char wnd_title[256];
+ HWND hwnd=GetForegroundWindow();
+ GetWindowText(hwnd,(LPWSTR)wnd_title,sizeof(wnd_title));
+ return wnd_title;
 }
 
 static void handleDiscordReady(const DiscordUser *request)
@@ -26,7 +28,7 @@ static void handleDiscordError(int errcode, const char* message)
     std::cout << printf("\nDiscord: error (%d: %s)\n", errcode, message);
 }
 
-void InitDiscord()
+void InitDiscord(const char* clientID)
 {
     DiscordEventHandlers handlers;
     memset(&handlers, 0, sizeof(handlers));
@@ -34,68 +36,72 @@ void InitDiscord()
     handlers.errored = handleDiscordError;
     handlers.disconnected = handleDiscordDisconnected;
     // Discord_Initialize(const char* applicationId, DiscordEventHandlers* handlers, int autoRegister, const char* optionalSteamId)
-    Discord_Initialize("452428491359649793", &handlers, 1, "221680");
+    Discord_Initialize(clientID, &handlers, 1, "221680");
 }
 
-void UpdatePresence(const char* state, const char* details, const char* smallImageText, const char* largeImageText)
+void UpdatePresence(const char* state, const char* details, const char* largeImageText, int64_t startTime, int64_t endTime)
 {
-    //Set required variables
     char buffer[256];
     DiscordRichPresence discordPresence;
     memset(&discordPresence, 0, sizeof(discordPresence));
 
-    if (sizeof(state) > 128 || strlen(state) < 1)
+    if (sizeof(state) > 128)
     {
-        std::cout << "\nState parameter is too long or not set\nPress any key to exit..." << std::endl;
+        std::cout << "\nState parameter is too long\nPress any key to exit..." << std::endl;
         Shutdown();
     }
-    discordPresence.state = state;
+    else if (sizeof(state) < 1)
+    {
+        discordPresence.state = "Browsing Menus";
+    }
+    else
+        discordPresence.state = state;
+
     if (sizeof(details) > 128 || strlen(details) < 1)
     {
         std::cout << "\nDetails parameter is too long or not set\nPress any key to exit..." << std::endl;
         Shutdown();
     }
 
+    if(startTime > endTime)
+    {
+        std::cout << "\nStartTime Greater than End Time\nPress any key to exit..." << std::endl;
+        Shutdown();
+    }
+    else if (startTime == endTime)
+    {
+        discordPresence.state = "Finished a Song";
+    }
+
     sprintf(buffer, "%s", details);
     discordPresence.details = buffer;
 
+   if (!(strlen(largeImageText) < 1))
+        discordPresence.largeImageText = largeImageText;
     discordPresence.largeImageKey = "album_cover";
     discordPresence.smallImageKey = "rocksmithlogo";
+    discordPresence.smallImageText = "Created by sallad/OhhLoz";
 
-    if (!(strlen(smallImageText) < 1))
-        discordPresence.largeImageText = largeImageText;
-
-    if (!(strlen(smallImageText) < 1))
-        discordPresence.smallImageText = smallImageText;
-
-    //Actaully update the presence
     Discord_UpdatePresence(&discordPresence);
 }
 
 void Shutdown()
 {
-    char temp;
     std::cout << "Shutting Down..." << std::endl;
     Discord_Shutdown();
-    std::cin >> temp;
     exit(1);
 }
-// void UpdatePresence()
-// {
-//     char buffer[256];
-//     DiscordRichPresence discordPresence;
-//     memset(&discordPresence, 0, sizeof(discordPresence));
-//     discordPresence.state = "In a Group";
-//     sprintf(buffer, "Ranked | Mode: %d", GameEngine.GetMode());
-//     discordPresence.details = buffer;
-//     discordPresence.endTimestamp = time(0) + 5 * 60;
-//     discordPresence.largeImageKey = "canary-large";
-//     discordPresence.smallImageKey = "ptb-small";
-//     discordPresence.partyId = GameEngine.GetPartyId();
-//     discordPresence.partySize = 1;
-//     discordPresence.partyMax = 6;
-//     discordPresence.matchSecret = "4b2fdce12f639de8bfa7e3591b71a0d679d7c93f";
-//     discordPresence.spectateSecret = "e7eb30d2ee025ed05c71ea495f770b76454ee4e0";
-//     discordPresence.instance = 1;
-//     Discord_UpdatePresence(&discordPresence);
-// }
+
+
+int main(int argc, char const *argv[])
+{
+    //Client ID: 452428491359649793
+    std::cout << "Initialising Discord Listeners" << std::endl;
+    InitDiscord("452428491359649793");
+    // while (GetActiveWindowTitle() == "Rocksmith2014")
+    // {
+    //     UpdatePresence("Test", "Test", "Test", 1, 2);
+    // }
+    UpdatePresence("Test", "Test", "Test", 1, 2);
+    return 0;
+}
