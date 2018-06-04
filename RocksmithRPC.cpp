@@ -1,3 +1,4 @@
+#include "RocksmithRPC.h"
 #include "include/discord_rpc.h"
 #include <cstdio>
 #include <string>
@@ -5,30 +6,34 @@
 #include <fstream>
 #include <windows.h>
 
-const char * GetActiveWindowTitle()
+int RocksmithRPC::getCurrentState()
 {
- char wnd_title[256];
- HWND hwnd=GetForegroundWindow();
- GetWindowText(hwnd,(LPWSTR)wnd_title,sizeof(wnd_title));
- return wnd_title;
+    return this->currState;
 }
 
-static void handleDiscordReady(const DiscordUser *request)
+void RocksmithRPC::Shutdown()
+{
+    std::cout << "Shutting Down..." << std::endl;
+    Discord_Shutdown();
+    exit(1);
+}
+
+void RocksmithRPC::handleDiscordReady(const DiscordUser *request)
 {
     std::cout << "\nDiscord: ready" << std::endl;
 }
 
-static void handleDiscordDisconnected(int errcode, const char* message)
+void RocksmithRPC::handleDiscordDisconnected(int errcode, const char* message)
 {
     std::cout << printf("\nDiscord: disconnected (%d: %s)\n", errcode, message);
 }
 
-static void handleDiscordError(int errcode, const char* message)
+void RocksmithRPC::handleDiscordError(int errcode, const char* message)
 {
     std::cout << printf("\nDiscord: error (%d: %s)\n", errcode, message);
 }
 
-void InitDiscord(const char* clientID)
+void RocksmithRPC::InitDiscord(const char* clientID)
 {
     DiscordEventHandlers handlers;
     memset(&handlers, 0, sizeof(handlers));
@@ -39,7 +44,7 @@ void InitDiscord(const char* clientID)
     Discord_Initialize(clientID, &handlers, 1, "221680");
 }
 
-void UpdatePresence(const char* state, const char* details, const char* largeImageText, int64_t startTime, int64_t endTime)
+void RocksmithRPC::UpdatePresence(const char* state, const char* details, const char* largeImageText, int64_t startTime, int64_t endTime)
 {
     char buffer[256];
     DiscordRichPresence discordPresence;
@@ -50,18 +55,26 @@ void UpdatePresence(const char* state, const char* details, const char* largeIma
         std::cout << "\nState parameter is too long\nPress any key to exit..." << std::endl;
         Shutdown();
     }
-    else if (sizeof(state) < 1)
+
+    if (sizeof(details) > 128)
+    {
+        std::cout << "\nDetails parameter is too long or not set\nPress any key to exit..." << std::endl;
+        Shutdown();
+    }
+
+    if (sizeof(state) < 1)
     {
         discordPresence.state = "Browsing Menus";
     }
     else
         discordPresence.state = state;
 
-    if (sizeof(details) > 128 || strlen(details) < 1)
+    if (sizeof(details) < 1)
     {
-        std::cout << "\nDetails parameter is too long or not set\nPress any key to exit..." << std::endl;
-        Shutdown();
+        discordPresence.details = "Browsing Menus";
     }
+    else
+        discordPresence.details = details;
 
     if(startTime > endTime)
     {
@@ -79,33 +92,36 @@ void UpdatePresence(const char* state, const char* details, const char* largeIma
    if (!(strlen(largeImageText) < 1))
         discordPresence.largeImageText = largeImageText;
 
-   if (discordPresence.state == "Browsing Menus" || discordPresence.state == "Finished a Song")
+   if (currState == menuState)
         discordPresence.largeImageKey = "rocksmithlogo2";
    else
         discordPresence.largeImageKey = "album_cover";
+
     discordPresence.smallImageKey = "rocksmithlogo";
     discordPresence.smallImageText = "Created by sallad/OhhLoz";
 
     Discord_UpdatePresence(&discordPresence);
 }
 
-void Shutdown()
+void RocksmithRPC::FormatPresence()
 {
-    std::cout << "Shutting Down..." << std::endl;
-    Discord_Shutdown();
-    exit(1);
-}
-
-
-int main(int argc, char const *argv[])
-{
-    //Client ID: 452428491359649793
-    std::cout << "Initialising Discord Listeners" << std::endl;
-    InitDiscord("452428491359649793");
-    // while (GetActiveWindowTitle() == "Rocksmith2014")
-    // {
-    //     UpdatePresence("Test", "Test", "Test", 1, 2);
-    // }
-    UpdatePresence("Test", "Test", "Test", 1, 2);
-    return 0;
+    switch(currState)
+    {
+        case menuState:
+            UpdatePresence("Browsing Menus", "Browsing Menus", "Rocksmith", 1, 2);
+            break;
+        case songState:
+            //Get Song Name
+            //Get Song Length
+            //Get Album Cover
+            //Get Album Name
+            //Get Accuracy
+            break;
+        case postSongState:
+            UpdatePresence("Finished Playing a Song", "Browsing Menus", "Rocksmith", 1, 2);
+            break;
+        case quitState:
+            Shutdown();
+            break;
+    }
 }
