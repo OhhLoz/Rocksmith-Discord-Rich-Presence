@@ -1,5 +1,4 @@
 #include "RocksmithRPC.h"
-#include "include/discord_rpc.h"
 #include <cstdio>
 #include <string>
 #include <iostream>

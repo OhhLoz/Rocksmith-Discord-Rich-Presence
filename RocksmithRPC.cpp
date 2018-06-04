@@ -1,10 +1,13 @@
 #include "RocksmithRPC.h"
 #include "include/discord_rpc.h"
+#include <ctime>
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <windows.h>
+#include <sstream>
+#include <vector>
 
 int RocksmithRPC::getCurrentState()
 {
@@ -15,6 +18,7 @@ void RocksmithRPC::Shutdown()
 {
     std::cout << "Shutting Down..." << std::endl;
     Discord_Shutdown();
+    currState = quitState;
     exit(1);
 }
 
@@ -35,20 +39,27 @@ void RocksmithRPC::handleDiscordError(int errcode, const char* message)
 
 void RocksmithRPC::InitDiscord(const char* clientID)
 {
+    currState = menuState;
     DiscordEventHandlers handlers;
-    memset(&handlers, 0, sizeof(handlers));
+    std::memset(&handlers, 0, sizeof(handlers));
     handlers.ready = handleDiscordReady;
     handlers.errored = handleDiscordError;
     handlers.disconnected = handleDiscordDisconnected;
+    if (strlen(clientID) < 1)
+    {
+        std::cout << "\nClientID Not Set" << std::endl;
+        Shutdown();
+    }
     // Discord_Initialize(const char* applicationId, DiscordEventHandlers* handlers, int autoRegister, const char* optionalSteamId)
     Discord_Initialize(clientID, &handlers, 1, "221680");
 }
 
-void RocksmithRPC::UpdatePresence(const char* state, const char* details, const char* largeImageText, int64_t startTime, int64_t endTime)
+void RocksmithRPC::UpdatePresence(const char* state, const char* details, const char* largeImageKey, const char* largeImageText, const char* smallImageKey, const char* smallImageText, int64_t time)
 {
+    prevState = currState;
     char buffer[256];
     DiscordRichPresence discordPresence;
-    memset(&discordPresence, 0, sizeof(discordPresence));
+    std::memset(&discordPresence, 0, sizeof(discordPresence));
 
     if (sizeof(state) > 128)
     {
@@ -62,63 +73,145 @@ void RocksmithRPC::UpdatePresence(const char* state, const char* details, const 
         Shutdown();
     }
 
-    if (sizeof(state) < 1)
+    if(std::time(nullptr) >= time && currState == songState)
     {
-        discordPresence.state = "Browsing Menus";
+        currState = menuState;
     }
-    else
-        discordPresence.state = state;
 
-    if (sizeof(details) < 1)
-    {
-        discordPresence.details = "Browsing Menus";
-    }
-    else
-        discordPresence.details = details;
-
-    if(startTime > endTime)
-    {
-        std::cout << "\nStartTime Greater than End Time\nPress any key to exit..." << std::endl;
-        Shutdown();
-    }
-    else if (startTime == endTime)
-    {
-        discordPresence.state = "Finished a Song";
-    }
+    if (currState == songState)
+        discordPresence.endTimestamp = time;
+    else if (currState == menuState)
+        discordPresence.startTimestamp = time;
 
     sprintf(buffer, "%s", details);
     discordPresence.details = buffer;
 
-   if (!(strlen(largeImageText) < 1))
-        discordPresence.largeImageText = largeImageText;
-
-   if (currState == menuState)
-        discordPresence.largeImageKey = "rocksmithlogo2";
-   else
-        discordPresence.largeImageKey = "album_cover";
-
-    discordPresence.smallImageKey = "rocksmithlogo";
-    discordPresence.smallImageText = "Created by sallad/OhhLoz";
-
+    discordPresence.state = state;
+    //discordPresence.details = details;
+    discordPresence.smallImageKey = smallImageKey;
+    discordPresence.smallImageText = smallImageText;
+    discordPresence.largeImageKey = largeImageKey;
+    discordPresence.largeImageText = largeImageText;
+    printVariables(discordPresence);
     Discord_UpdatePresence(&discordPresence);
+}
+
+const char* RocksmithRPC::getSongName()
+{
+    std::fstream songFile;
+    songFile.open("song_details", std::fstream::in);
+    std::string s;
+    std::getline(songFile, s);
+    songFile.close();
+    return s.c_str();
+}
+
+const char* RocksmithRPC::getAlbumName()
+{
+    std::fstream albumFile;
+    albumFile.open("album_details", std::fstream::in);
+    std::string s;
+    std::getline(albumFile, s);
+    albumFile.close();
+    return s.c_str();
+}
+
+const char* RocksmithRPC::getAccuracy()
+{
+    std::fstream accuracyFile;
+    accuracyFile.open("accuracy", std::fstream::in);
+    std::string s;
+    std::getline(accuracyFile, s);
+    accuracyFile.close();
+    return s.c_str();
+}
+
+const char* RocksmithRPC::getNotes()
+{
+    std::fstream notesFile;
+    notesFile.open("notes", std::fstream::in);
+    std::string s;
+    std::getline(notesFile, s);
+    notesFile.close();
+    return s.c_str();
+}
+
+int64_t RocksmithRPC::getEndTime()
+{
+    std::fstream songtimerFile;
+    songtimerFile.open("song_timer", std::fstream::in);
+    std::string s;
+    std::getline(songtimerFile, s);
+    songtimerFile.close();
+    std::vector<std::string> splitBySlash = splitString(s, '/');
+    std::vector<std::string> splitByColon = splitString(splitBySlash[1], ':');
+    int seconds = std::atoi(splitByColon[1].c_str());
+    seconds += (atoi(splitByColon[0].c_str()) * 60);
+    return std::time(nullptr) + seconds;
+}
+
+std::vector<std::string> RocksmithRPC::splitString (std::string str, char c)
+{
+    std::stringstream test(str);
+    std::string segment;
+    std::vector<std::string> seglist;
+
+    while(std::getline(test, segment, c))
+        seglist.push_back(segment);
+    return seglist;
+}
+
+void RocksmithRPC::printVariables(DiscordRichPresence s)
+{
+    std::cout << "\nCURRENT SETTINGS" << std::endl;
+    std::cout << "-------------------------" << std::endl;
+    std::cout << "STATE IS: " << s.state << std::endl;
+    std::cout << "DETAILS ARE: " << s.details << std::endl;
+    std::cout << "LARGE IMAGE IS: " << s.largeImageKey << std::endl;
+    std::cout << "SMALL IMAGE IS: " << s.smallImageKey << std::endl;
+    std::cout << "SMALL IMAGE TEXT IS: " << s.smallImageText << std::endl;
+    std::cout << "LARGE IMAGE TEXT IS: " << s.largeImageText << std::endl;
+}
+
+bool RocksmithRPC::IsFirstTimeSongPlaying()
+{
+    if (prevState == menuState && currState == songState)
+        return true;
+    return false;
 }
 
 void RocksmithRPC::FormatPresence()
 {
+    static const char* songName;
+    static const char* albumName;
+    static const char* accuracy;
+    static const char* notes;
+    static int64_t time = std::time(nullptr);
+    std::ostringstream songStr;
+    std::ostringstream detailsStr;
+
     switch(currState)
     {
         case menuState:
-            UpdatePresence("Browsing Menus", "Browsing Menus", "Rocksmith", 1, 2);
+            UpdatePresence("Browsing Menus", "Browsing Menus", "rocksmithlogo2", "Rocksmith", "rocksmithlogo", "Created by sallad/OhhLoz", time);
             break;
         case songState:
+            if (IsFirstTimeSongPlaying())
+            {
+                songName = getSongName();
+                albumName = getAlbumName();
+                time = getEndTime();
+            }
+            accuracy = getAccuracy();
+            notes = getNotes();
+            songStr << "Playing: " << songName;
+            detailsStr << "Accuracy: " << accuracy << "Notes: " << notes;
+            UpdatePresence(songStr.str().c_str(),  detailsStr.str().c_str(), "album_cover", albumName, "rocksmithlogo", "Created by sallad/OhhLoz", time);
             //Get Song Name
             //Get Song Length
             //Get Album Cover
             //Get Album Name
             //Get Accuracy
-            break;
-        case postSongState:
-            UpdatePresence("Finished Playing a Song", "Browsing Menus", "Rocksmith", 1, 2);
             break;
         case quitState:
             Shutdown();
