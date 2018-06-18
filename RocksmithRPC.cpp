@@ -1,13 +1,10 @@
 #include "RocksmithRPC.h"
-#include "include/discord_rpc.h"
 #include <ctime>
 #include <cstdio>
 #include <cstring>
-#include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
 
 int RocksmithRPC::getCurrentState()
 {
@@ -175,9 +172,7 @@ void RocksmithRPC::printVariables(DiscordRichPresence s)
 
 bool RocksmithRPC::IsFirstTimeSongPlaying()
 {
-    if (prevState == menuState && currState == songState)
-        return true;
-    return false;
+    return prevState == menuState && currState == songState;
 }
 
 void RocksmithRPC::FormatPresence()

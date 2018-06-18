@@ -1,4 +1,3 @@
-
 #include "include/discord_rpc.h"
 #include <string>
 #include <vector>
