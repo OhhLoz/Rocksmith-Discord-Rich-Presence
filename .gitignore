@@ -28,5 +28,7 @@
 *.app
 
 # Project Specific
+.idea
+cmake-build-debug
 include/discord_register.h
 .vscode
