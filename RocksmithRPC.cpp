@@ -1,17 +1,42 @@
-#include "RocksmithRPC.h"
+
 #include <ctime>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include "discord_register.h"
+#include "discord_rpc.h"
 
-int RocksmithRPC::getCurrentState()
+enum State { menuState, songState, quitState };
+static State currState = menuState;
+static State prevState = menuState;
+
+static void printVariables(DiscordRichPresence s)
 {
-    return this->currState;
+    std::cout << "\nCURRENT SETTINGS" << std::endl;
+    std::cout << "-------------------------" << std::endl;
+    std::cout << "STATE IS: " << s.state << std::endl;
+    std::cout << "DETAILS ARE: " << s.details << std::endl;
+    std::cout << "LARGE IMAGE IS: " << s.largeImageKey << std::endl;
+    std::cout << "SMALL IMAGE IS: " << s.smallImageKey << std::endl;
+    std::cout << "SMALL IMAGE TEXT IS: " << s.smallImageText << std::endl;
+    std::cout << "LARGE IMAGE TEXT IS: " << s.largeImageText << std::endl;
 }
 
-void RocksmithRPC::Shutdown()
+static std::vector<std::string> splitString (std::string str, char c)
+{
+    std::stringstream test(str);
+    std::string segment;
+    std::vector<std::string> seglist;
+
+    while(std::getline(test, segment, c))
+        seglist.push_back(segment);
+    return seglist;
+}
+
+static void Shutdown()
 {
     std::cout << "Shutting Down..." << std::endl;
     Discord_Shutdown();
@@ -19,22 +44,22 @@ void RocksmithRPC::Shutdown()
     exit(1);
 }
 
-void RocksmithRPC::handleDiscordReady(const DiscordUser *request)
+static void handleDiscordReady(const DiscordUser *request)
 {
     std::cout << "\nDiscord: ready" << std::endl;
 }
 
-void RocksmithRPC::handleDiscordDisconnected(int errcode, const char* message)
+static void handleDiscordDisconnected(int errcode, const char* message)
 {
     std::cout << printf("\nDiscord: disconnected (%d: %s)\n", errcode, message);
 }
 
-void RocksmithRPC::handleDiscordError(int errcode, const char* message)
+static void handleDiscordError(int errcode, const char* message)
 {
     std::cout << printf("\nDiscord: error (%d: %s)\n", errcode, message);
 }
 
-void RocksmithRPC::InitDiscord(const char* clientID)
+static void InitDiscord(const char* clientID)
 {
     currState = menuState;
     DiscordEventHandlers handlers;
@@ -51,7 +76,7 @@ void RocksmithRPC::InitDiscord(const char* clientID)
     Discord_Initialize(clientID, &handlers, 1, "221680");
 }
 
-void RocksmithRPC::UpdatePresence(const char* state, const char* details, const char* largeImageKey, const char* largeImageText, const char* smallImageKey, const char* smallImageText, int64_t time)
+static void UpdatePresence(const char* state, const char* details, const char* largeImageKey, const char* largeImageText, const char* smallImageKey, const char* smallImageText, int64_t time)
 {
     prevState = currState;
     char buffer[256];
@@ -93,7 +118,7 @@ void RocksmithRPC::UpdatePresence(const char* state, const char* details, const 
     Discord_UpdatePresence(&discordPresence);
 }
 
-const char* RocksmithRPC::getSongName()
+static const char* getSongName()
 {
     std::fstream songFile;
     songFile.open("song_details", std::fstream::in);
@@ -103,7 +128,7 @@ const char* RocksmithRPC::getSongName()
     return s.c_str();
 }
 
-const char* RocksmithRPC::getAlbumName()
+static const char* getAlbumName()
 {
     std::fstream albumFile;
     albumFile.open("album_details", std::fstream::in);
@@ -113,7 +138,7 @@ const char* RocksmithRPC::getAlbumName()
     return s.c_str();
 }
 
-const char* RocksmithRPC::getAccuracy()
+static const char* getAccuracy()
 {
     std::fstream accuracyFile;
     accuracyFile.open("accuracy", std::fstream::in);
@@ -123,7 +148,7 @@ const char* RocksmithRPC::getAccuracy()
     return s.c_str();
 }
 
-const char* RocksmithRPC::getNotes()
+static const char* getNotes()
 {
     std::fstream notesFile;
     notesFile.open("notes", std::fstream::in);
@@ -133,7 +158,7 @@ const char* RocksmithRPC::getNotes()
     return s.c_str();
 }
 
-int64_t RocksmithRPC::getEndTime()
+static int64_t getEndTime()
 {
     std::fstream songtimerFile;
     songtimerFile.open("song_timer", std::fstream::in);
@@ -147,35 +172,12 @@ int64_t RocksmithRPC::getEndTime()
     return std::time(nullptr) + seconds;
 }
 
-std::vector<std::string> RocksmithRPC::splitString (std::string str, char c)
-{
-    std::stringstream test(str);
-    std::string segment;
-    std::vector<std::string> seglist;
-
-    while(std::getline(test, segment, c))
-        seglist.push_back(segment);
-    return seglist;
-}
-
-void RocksmithRPC::printVariables(DiscordRichPresence s)
-{
-    std::cout << "\nCURRENT SETTINGS" << std::endl;
-    std::cout << "-------------------------" << std::endl;
-    std::cout << "STATE IS: " << s.state << std::endl;
-    std::cout << "DETAILS ARE: " << s.details << std::endl;
-    std::cout << "LARGE IMAGE IS: " << s.largeImageKey << std::endl;
-    std::cout << "SMALL IMAGE IS: " << s.smallImageKey << std::endl;
-    std::cout << "SMALL IMAGE TEXT IS: " << s.smallImageText << std::endl;
-    std::cout << "LARGE IMAGE TEXT IS: " << s.largeImageText << std::endl;
-}
-
-bool RocksmithRPC::IsFirstTimeSongPlaying()
+static bool IsFirstTimeSongPlaying()
 {
     return prevState == menuState && currState == songState;
 }
 
-void RocksmithRPC::FormatPresence()
+static void FormatPresence()
 {
     static const char* songName;
     static const char* albumName;
@@ -212,4 +214,23 @@ void RocksmithRPC::FormatPresence()
             Shutdown();
             break;
     }
+}
+
+int main(int argc, char const *argv[])
+{
+    //Client ID: 452428491359649793
+    //g++ -L lib -l discord-rpc Main.cpp RocksmithRPC.h RocksmithRPC.cpp -o RocksmithRPC
+    //g++ Main.cpp RocksmithRPC.h RocksmithRPC.cpp -o RocksmithRPC -L lib -l discord-rpc
+    //g++ -I include RocksmithRPC.cpp -o RocksmithRPC.exe D:\Documents\Apps\Rocksmith Discord Rich Presence\lib\discord-rpc.lib
+    const char* clientID = "452428491359649793";
+    std::cout << "Initialising Discord Listeners" << std::endl;
+    InitDiscord(clientID);
+    // while (GetActiveWindowTitle() == "Rocksmith2014")
+    // {
+    //     UpdatePresence("Test", "Test", "Test", 1, 2);
+    // }
+    while(currState != State::quitState)
+        FormatPresence();
+    Shutdown();
+    return 0;
 }
