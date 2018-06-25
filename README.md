@@ -2,8 +2,8 @@
 ### Small Project to try to implement Discord RIch Presence to track Rocksmith Songs live.
 
 ## Requirements
-### Rocksniffer (https://github.com/kokolihapihvi/RockSniffer/releases)
-### This Repo (https://github.com/OhhLoz/Rocksmith-Discord-Rich-Presence/releases)
+Rocksniffer (https://github.com/kokolihapihvi/RockSniffer/releases)
+This Repo (https://github.com/OhhLoz/Rocksmith-Discord-Rich-Presence/releases)
 
 ## Installation
 1. Download Rocksniffer & This repo
