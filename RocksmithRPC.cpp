@@ -78,7 +78,6 @@ static void InitDiscord(const char* clientID)
 
 static void UpdatePresence(const char* state, const char* details, const char* largeImageKey, const char* largeImageText, const char* smallImageKey, const char* smallImageText, int64_t time)
 {
-    prevState = currState;
     char buffer[256];
     DiscordRichPresence discordPresence;
     std::memset(&discordPresence, 0, sizeof(discordPresence));
@@ -100,6 +99,9 @@ static void UpdatePresence(const char* state, const char* details, const char* l
         currState = menuState;
     }
 
+    if (currState != prevState)
+        printVariables(discordPresence);
+
     if (currState == songState)
         discordPresence.endTimestamp = time;
     else if (currState == menuState)
@@ -114,8 +116,8 @@ static void UpdatePresence(const char* state, const char* details, const char* l
     discordPresence.smallImageText = smallImageText;
     discordPresence.largeImageKey = largeImageKey;
     discordPresence.largeImageText = largeImageText;
-    printVariables(discordPresence);
     Discord_UpdatePresence(&discordPresence);
+    prevState = currState;
 }
 
 static const char* getSongName()
@@ -168,7 +170,7 @@ static int64_t getEndTime()
     std::vector<std::string> splitBySlash = splitString(s, '/');
     std::vector<std::string> splitByColon = splitString(splitBySlash[1], ':');
     int seconds = std::atoi(splitByColon[1].c_str());
-    seconds += (atoi(splitByColon[0].c_str()) * 60);
+    seconds += (std::atoi(splitByColon[0].c_str()) * 60);
     return std::time(nullptr) + seconds;
 }
 
@@ -211,6 +213,9 @@ static void FormatPresence()
             //Get Accuracy
             break;
         case quitState:
+            std::cout << "Shutting Down" << std::endl;
+            std::string temp;
+            std::cin >> temp;
             Shutdown();
             break;
     }
@@ -219,9 +224,6 @@ static void FormatPresence()
 int main(int argc, char const *argv[])
 {
     //Client ID: 452428491359649793
-    //g++ -L lib -l discord-rpc Main.cpp RocksmithRPC.h RocksmithRPC.cpp -o RocksmithRPC
-    //g++ Main.cpp RocksmithRPC.h RocksmithRPC.cpp -o RocksmithRPC -L lib -l discord-rpc
-    //g++ -I include RocksmithRPC.cpp -o RocksmithRPC.exe D:\Documents\Apps\Rocksmith Discord Rich Presence\lib\discord-rpc.lib
     const char* clientID = "452428491359649793";
     std::cout << "Initialising Discord Listeners" << std::endl;
     InitDiscord(clientID);
@@ -231,6 +233,9 @@ int main(int argc, char const *argv[])
     // }
     while(currState != State::quitState)
         FormatPresence();
+    std::cout << "Shutting Down" << std::endl;
+    std::string temp;
+    std::cin >> temp;
     Shutdown();
     return 0;
 }
