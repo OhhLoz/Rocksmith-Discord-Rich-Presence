@@ -6,6 +6,8 @@
 int main(int argc, char const *argv[])
 {
     //Client ID: 452428491359649793
+    //g++ -L lib -l discord-rpc Main.cpp RocksmithRPC.h RocksmithRPC.cpp -o RocksmithRPC
+    //g++ Main.cpp RocksmithRPC.h RocksmithRPC.cpp -o RocksmithRPC -L lib -l discord-rpc
     RocksmithRPC client;
     const char* clientID = "452428491359649793";
     std::cout << "Initialising Discord Listeners" << std::endl;
