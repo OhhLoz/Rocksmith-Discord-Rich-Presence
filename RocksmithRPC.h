@@ -1,12 +1,11 @@
-#include "include/discord_rpc.h"
+#include "discord_rpc.h"
+#include "discord_register.h"
 #include <string>
 #include <vector>
 
 class RocksmithRPC
 {
     public:
-        int main(int argc, char const *argv[]);
-
         int getCurrentState();
         std::vector<std::string> splitString (std::string str, char c);
 
