@@ -86,7 +86,6 @@ static void InitDiscord(const char* clientID)
 
 static void UpdatePresence(const char* state, const char* details, const char* largeImageKey, const char* largeImageText, const char* smallImageKey, const char* smallImageText, int64_t time)
 {
-    prevState = currState;
     char buffer[256];
     DiscordRichPresence discordPresence;
     std::memset(&discordPresence, 0, sizeof(discordPresence));
@@ -224,8 +223,14 @@ static void FormatPresence()
     std::ostringstream detailsStr;
     std::ostringstream accuracyStr;
 
-    if ((getAlbumName() != "" && getSongName() != "") && (currSong.songName != prevSong.songName || currSong.albumName != prevSong.albumName))
+
+    if (getSongName() != currSong.songName)
         currState = songState;
+
+    // if ((getAlbumName() != nullptr && getSongName() != nullptr) && (currSong.songName != prevSong.songName || currSong.albumName != prevSong.albumName))
+    // {
+    //     currState = songState;
+    // }
 
     if (isStateChanged())
     {
@@ -246,7 +251,7 @@ static void FormatPresence()
                 songStr << "Playing: " << currSong.songName;
                 detailsStr << "On: " << currSong.albumName;
                 accuracyStr << "Accuracy: " << currSong.accuracy;
-                UpdatePresence(songStr.str().c_str(),  detailsStr.str().c_str(), "album_cover", accuracyStr.str().c_str(), "rocksmithlogo", "Created by OhhLoz", time);
+                UpdatePresence(detailsStr.str().c_str(), songStr.str().c_str(), "album_cover", accuracyStr.str().c_str(), "rocksmithlogo", "Created by OhhLoz", time);
                 break;
             case quitState:
                 std::cout << "Shutting Down" << std::endl;
@@ -257,6 +262,9 @@ static void FormatPresence()
         }
     }
 
+    currSong.songName = getSongName();
+
+    prevState = currState;
     prevSong = currSong;
 }
 
@@ -272,7 +280,7 @@ int main(int argc, char const *argv[])
     //     UpdatePresence("Test", "Test", "Test", 1, 2);
     // }
     while(currState != State::quitState)
-        FormatPresence();
+       FormatPresence();
     std::cout << "Shutting Down" << std::endl;
     std::string temp;
     std::cin >> temp;
