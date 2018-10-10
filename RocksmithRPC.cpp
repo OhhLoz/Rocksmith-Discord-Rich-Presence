@@ -105,6 +105,7 @@ static void UpdatePresence(const char* state, const char* details, const char* l
     if(std::time(nullptr) >= time && currState == songState)
     {
         currState = menuState;
+        std::cout << "State changed to MenuState" << std::endl;
     }
 
     if (currState == songState)
@@ -216,37 +217,42 @@ static bool isSongChange(Song currSong, Song prevSong)
 
 static void FormatPresence()
 {
-    static Song currSong;
     static Song prevSong;
+    static Song currSong;
     static int64_t time = std::time(nullptr);
     std::ostringstream songStr;
     std::ostringstream detailsStr;
     std::ostringstream accuracyStr;
 
+    // if (isSongChange(currSong, prevSong)) //doesnt currently do anything
+    //    currState = songState;
 
-    if (getSongName() != currSong.songName)
-        currState = songState;
+    // currSong.accuracy = getAccuracy();
+    // currSong.albumName = getAlbumName();
+    // currSong.songName = getSongName();
 
-    // if ((getAlbumName() != nullptr && getSongName() != nullptr) && (currSong.songName != prevSong.songName || currSong.albumName != prevSong.albumName))
+    // if (currSong.songName != "" && currState != songState && currSong.albumName != "")
     // {
     //     currState = songState;
+    //     std::cout << "State changed to SongState" << std::endl;
     // }
 
     if (isStateChanged())
     {
+        std::cout << "Previous State = " << prevState << std::endl;
+        std::cout << "Current State = " << currState << std::endl;
         switch(currState)
         {
             case menuState:
-                UpdatePresence("Browsing Menus", "Browsing Menus", "rocksmithlogo2", "Rocksmith", "rocksmithlogo", "Created by OhhLoz", time);
+                UpdatePresence("Browsing Menus", "", "rocksmithlogo2", "Rocksmith", "rocksmithlogo", "Created by OhhLoz", time);
                 break;
             case songState:
                 if(isFirstTimeSongPlaying())
                 {
-                    currSong.songName = getSongName();
-                    currSong.albumName = getAlbumName();
+                    std::cout<< "Start Time= " << time << std::endl;
                     time = getEndTime();
+                    std::cout << "End Time=" << time << std::endl;
                 }
-                currSong.accuracy = getAccuracy();
                 //currSong.notes = getNotes();
                 songStr << "Playing: " << currSong.songName;
                 detailsStr << "On: " << currSong.albumName;
@@ -262,10 +268,14 @@ static void FormatPresence()
         }
     }
 
-    currSong.songName = getSongName();
-
     prevState = currState;
+    //std::cout << "PrevState set to CurrState" << std::endl;
     prevSong = currSong;
+    if (isStateChanged())
+    {
+        std::cout << "End Previous State = " << prevState << std::endl;
+        std::cout << "End Current State = " << currState << std::endl;
+    }
 }
 
 int main(int argc, char const *argv[])
