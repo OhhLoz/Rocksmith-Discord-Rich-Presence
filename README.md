@@ -26,6 +26,8 @@ The output folder should contain files such as, album_cover, song_details.txt, n
 
 For it to track the songs and update correctly, Rocksniffer must be running & have detected Rocksmith alongside this project running. There will be debug printouts whilst this project runs.
 
+Run Rocksniffer -> Run RocksmithRPC (this project) -> Run Rocksmith2014
+
 ## Built With
 
 * [Cygwin](https://www.cygwin.com/) - The GCC compiler used
@@ -33,15 +35,9 @@ For it to track the songs and update correctly, Rocksniffer must be running & ha
 * [Discord Libraries](https://github.com/discordapp/discord-rpc) - Discord Libraries to connect to the discord rich presence developer applications
 * [VSCode](https://code.visualstudio.com/) - Used to code the whole project
 
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
 ## Authors
 
-* **Laurence Ure** - *Initial work* - [Website](www.laurenceure.me)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+* **Laurence Ure** - *Initial work* - [Website](http://www.laurenceure.me)
 
 ## License
 
