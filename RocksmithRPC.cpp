@@ -9,9 +9,17 @@
 #include "discord_register.h"
 #include "discord_rpc.h"
 
-enum State { menuState, songState, quitState };
+enum State { menuState, songState, tempState, quitState };
 static State currState = menuState;
-static State prevState = menuState;
+static State prevState = tempState;
+
+struct Song
+{
+    const char* songName;
+    const char* albumName;
+    const char* notes;
+    const char* accuracy;
+};
 
 static void printVariables(DiscordRichPresence s)
 {
@@ -97,10 +105,8 @@ static void UpdatePresence(const char* state, const char* details, const char* l
     if(std::time(nullptr) >= time && currState == songState)
     {
         currState = menuState;
+        std::cout << "State changed to MenuState" << std::endl;
     }
-
-    if (currState != prevState)
-        printVariables(discordPresence);
 
     if (currState == songState)
         discordPresence.endTimestamp = time;
@@ -116,14 +122,14 @@ static void UpdatePresence(const char* state, const char* details, const char* l
     discordPresence.smallImageText = smallImageText;
     discordPresence.largeImageKey = largeImageKey;
     discordPresence.largeImageText = largeImageText;
+    printVariables(discordPresence);
     Discord_UpdatePresence(&discordPresence);
-    prevState = currState;
 }
 
 static const char* getSongName()
 {
-    std::fstream songFile;
-    songFile.open("song_details", std::fstream::in);
+    std::ifstream songFile;
+    songFile.open("song_details.txt", std::fstream::in);
     std::string s;
     std::getline(songFile, s);
     songFile.close();
@@ -133,7 +139,7 @@ static const char* getSongName()
 static const char* getAlbumName()
 {
     std::fstream albumFile;
-    albumFile.open("album_details", std::fstream::in);
+    albumFile.open("album_details.txt", std::fstream::in);
     std::string s;
     std::getline(albumFile, s);
     albumFile.close();
@@ -143,7 +149,7 @@ static const char* getAlbumName()
 static const char* getAccuracy()
 {
     std::fstream accuracyFile;
-    accuracyFile.open("accuracy", std::fstream::in);
+    accuracyFile.open("accuracy.txt", std::fstream::in);
     std::string s;
     std::getline(accuracyFile, s);
     accuracyFile.close();
@@ -153,7 +159,7 @@ static const char* getAccuracy()
 static const char* getNotes()
 {
     std::fstream notesFile;
-    notesFile.open("notes", std::fstream::in);
+    notesFile.open("notes.txt", std::fstream::in);
     std::string s;
     std::getline(notesFile, s);
     notesFile.close();
@@ -163,67 +169,119 @@ static const char* getNotes()
 static int64_t getEndTime()
 {
     std::fstream songtimerFile;
-    songtimerFile.open("song_timer", std::fstream::in);
+    songtimerFile.open("song_timer.txt", std::fstream::in);
     std::string s;
     std::getline(songtimerFile, s);
     songtimerFile.close();
-    std::vector<std::string> splitBySlash = splitString(s, '/');
-    std::vector<std::string> splitByColon = splitString(splitBySlash[1], ':');
-    int seconds = std::atoi(splitByColon[1].c_str());
-    seconds += (std::atoi(splitByColon[0].c_str()) * 60);
-    return std::time(nullptr) + seconds;
+    if (s != "")
+    {
+        std::vector<std::string> splitBySlash = splitString(s, '/');
+        std::vector<std::string> splitByColon = splitString(splitBySlash[1], ':');
+        int seconds = std::atoi(splitByColon[1].c_str());
+        seconds += (std::atoi(splitByColon[0].c_str()) * 60);
+        return std::time(nullptr) + seconds;
+    }
+    else
+        return std::time(nullptr);
 }
 
-static bool IsFirstTimeSongPlaying()
+static bool isStateChanged()
+{
+    if (currState != prevState)
+        return true;
+}
+
+static bool isFirstTimeSongPlaying()
 {
     return prevState == menuState && currState == songState;
 }
 
+static bool is_empty(std::ifstream& pFile)
+{
+    return pFile.peek() == std::ifstream::traits_type::eof();
+}
+
+static bool isSongChange(Song currSong, Song prevSong)
+{
+    if (currSong.songName != prevSong.songName)
+        return true;
+    else if (currSong.albumName != prevSong.albumName)
+        return true;
+    else if (currSong.accuracy != prevSong.accuracy)
+        return true;
+    else if (currSong.notes != prevSong.notes)
+        return true;
+
+    return false;
+}
+
 static void FormatPresence()
 {
-    static const char* songName;
-    static const char* albumName;
-    static const char* accuracy;
-    static const char* notes;
+    static Song prevSong;
+    static Song currSong;
     static int64_t time = std::time(nullptr);
     std::ostringstream songStr;
     std::ostringstream detailsStr;
+    std::ostringstream accuracyStr;
 
-    switch(currState)
+    // if (isSongChange(currSong, prevSong)) //doesnt currently do anything
+    //    currState = songState;
+
+    // currSong.accuracy = getAccuracy();
+    // currSong.albumName = getAlbumName();
+    // currSong.songName = getSongName();
+
+    // if (currSong.songName != "" && currState != songState && currSong.albumName != "")
+    // {
+    //     currState = songState;
+    //     std::cout << "State changed to SongState" << std::endl;
+    // }
+
+    if (isStateChanged())
     {
-        case menuState:
-            UpdatePresence("Browsing Menus", "Browsing Menus", "rocksmithlogo2", "Rocksmith", "rocksmithlogo", "Created by sallad/OhhLoz", time);
-            break;
-        case songState:
-            if (IsFirstTimeSongPlaying())
-            {
-                songName = getSongName();
-                albumName = getAlbumName();
-                time = getEndTime();
-            }
-            accuracy = getAccuracy();
-            notes = getNotes();
-            songStr << "Playing: " << songName;
-            detailsStr << "Accuracy: " << accuracy << "Notes: " << notes;
-            UpdatePresence(songStr.str().c_str(),  detailsStr.str().c_str(), "album_cover", albumName, "rocksmithlogo", "Created by sallad/OhhLoz", time);
-            //Get Song Name
-            //Get Song Length
-            //Get Album Cover
-            //Get Album Name
-            //Get Accuracy
-            break;
-        case quitState:
-            std::cout << "Shutting Down" << std::endl;
-            std::string temp;
-            std::cin >> temp;
-            Shutdown();
-            break;
+        std::cout << "Previous State = " << prevState << std::endl;
+        std::cout << "Current State = " << currState << std::endl;
+        switch(currState)
+        {
+            case menuState:
+                UpdatePresence("Browsing Menus", "", "rocksmithlogo2", "Rocksmith", "rocksmithlogo", "Created by OhhLoz", time);
+                break;
+            case songState:
+                if(isFirstTimeSongPlaying())
+                {
+                    std::cout<< "Start Time= " << time << std::endl;
+                    time = getEndTime();
+                    std::cout << "End Time=" << time << std::endl;
+                }
+                //currSong.notes = getNotes();
+                songStr << "Playing: " << currSong.songName;
+                detailsStr << "On: " << currSong.albumName;
+                accuracyStr << "Accuracy: " << currSong.accuracy;
+                UpdatePresence(detailsStr.str().c_str(), songStr.str().c_str(), "album_cover", accuracyStr.str().c_str(), "rocksmithlogo", "Created by OhhLoz", time);
+                break;
+            case quitState:
+                std::cout << "Shutting Down" << std::endl;
+                std::string temp;
+                std::cin >> temp;
+                Shutdown();
+                break;
+        }
+    }
+
+    prevState = currState;
+    //std::cout << "PrevState set to CurrState" << std::endl;
+    prevSong = currSong;
+    if (isStateChanged())
+    {
+        std::cout << "End Previous State = " << prevState << std::endl;
+        std::cout << "End Current State = " << currState << std::endl;
     }
 }
 
 int main(int argc, char const *argv[])
 {
     //Client ID: 452428491359649793
+    //cmake --build "D:\Documents\Apps\Rocksmith Discord Rich Presence\cmake-build-debug" --target RocksmithRPC -- -j 2
     const char* clientID = "452428491359649793";
     std::cout << "Initialising Discord Listeners" << std::endl;
     InitDiscord(clientID);
@@ -232,7 +290,7 @@ int main(int argc, char const *argv[])
     //     UpdatePresence("Test", "Test", "Test", 1, 2);
     // }
     while(currState != State::quitState)
-        FormatPresence();
+       FormatPresence();
     std::cout << "Shutting Down" << std::endl;
     std::string temp;
     std::cin >> temp;
