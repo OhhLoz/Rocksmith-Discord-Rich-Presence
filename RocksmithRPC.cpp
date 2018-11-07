@@ -104,7 +104,7 @@ static void UpdatePresence(const char* state, const char* details, const char* l
     if(std::time(nullptr) >= time && currState == songState)
     {
         currState = menuState;
-        std::cout << "State changed to MenuState" << std::endl;
+        //std::cout << "State changed to MenuState" << std::endl;
     }
 
     if (currState == songState)
@@ -213,13 +213,13 @@ static void FormatPresence()
     if (currAlbumName != " " && currState == menuState && currState != songState && currSongName != " ")
     {
         currState = songState;
-        std::cout << "State changed to SongState" << std::endl;
+        //std::cout << "State changed to SongState" << std::endl;
     }
 
     if (isStateChanged())
     {
-        std::cout << "Previous State = " << prevState << std::endl;
-        std::cout << "Current State = " << currState << std::endl;
+        // std::cout << "Previous State = " << prevState << std::endl;
+        // std::cout << "Current State = " << currState << std::endl;
         switch(currState)
         {
             case menuState:
@@ -228,9 +228,9 @@ static void FormatPresence()
             case songState:
                 if(isFirstTimeSongPlaying())
                 {
-                    std::cout<< "Start Time= " << time << std::endl;
+                    //std::cout<< "Start Time= " << time << std::endl;
                     time = getEndTime();
-                    std::cout << "End Time=" << time << std::endl;
+                    //std::cout << "End Time=" << time << std::endl;
                 }
                 //currSong.notes = getNotes();
                 songStr << "Playing: " << currSongName;
@@ -249,11 +249,11 @@ static void FormatPresence()
     prevState = currState;
     //std::cout << "PrevState set to CurrState" << std::endl;
     //prevSong = currSong;
-    if (isStateChanged())
-    {
-        std::cout << "End Previous State = " << prevState << std::endl;
-        std::cout << "End Current State = " << currState << std::endl;
-    }
+    // if (isStateChanged())
+    // {
+    //     std::cout << "End Previous State = " << prevState << std::endl;
+    //     std::cout << "End Current State = " << currState << std::endl;
+    // }
 }
 
 int main(int argc, char const *argv[])
