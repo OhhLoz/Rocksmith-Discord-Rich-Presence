@@ -7,7 +7,6 @@
 #include <sstream>
 #include <vector>
 #include <windows.h>
-#include "discord_register.h"
 #include "discord_rpc.h"
 
 struct Song
@@ -19,9 +18,10 @@ struct Song
 
 enum State { menuState, songState, initState, quitState };
 State currState = initState;
-State prevState = currState;
+State prevState = initState;
 Song currSong;
 Song prevSong = currSong;
+double versionNumber = 2.0;
 
 static void printVariables(DiscordRichPresence s)
 {
@@ -209,23 +209,23 @@ static void FormatPresence()
     //std::string currAlbumName = getAlbumName();
     // std::string currSongName = getSongName();
 
-     std::cout << "Album Name: " << currSong.albumName << std::endl;
-     std::cout << "Song Name: " << currSong.songName << std::endl;
+    //  std::cout << "Album Name: " << currSong.albumName << std::endl;
+    //  std::cout << "Song Name: " << currSong.songName << std::endl;
 
-    if (currSong.albumName != " " && currState == menuState && currState != songState && currSong.songName != " ")
+    if (!currSong.albumName.empty() && currState != songState && !currSong.songName.empty() && isSongChange(currSong, prevSong))
     {
         currState = songState;
         std::cout << "State changed to SongState" << std::endl;
     }
 
-    if(currState == initState)
+    if(currState == initState || currState == menuState)
     {
         UpdatePresence("Browsing Menus", "", "rocksmithlarge", "Rocksmith 2014 Remastered", "rocksmithsmall", "Created by OhhLoz", time);
     }
     else if (isStateChanged())
     {
-        std::cout << "Previous State = " << prevState << std::endl;
-        std::cout << "Current State = " << currState << std::endl;
+        // std::cout << "Previous State = " << prevState << std::endl;
+        // std::cout << "Current State = " << currState << std::endl;
         switch(currState)
         {
             case menuState:
@@ -254,7 +254,7 @@ static void FormatPresence()
 
     prevState = currState;
     prevSong = currSong;
-    std::cout << "PrevState & Song set to CurrState & Song" << std::endl;
+    //std::cout << "PrevState & Song set to CurrState & Song" << std::endl;
     //  if (isStateChanged())
     //  {
     //      std::cout << "End Previous State = " << prevState << std::endl;
@@ -267,7 +267,11 @@ int main(int argc, char const *argv[])
     //Client ID: 452428491359649793
     //cmake --build "D:\Documents\Apps\Rocksmith Discord Rich Presence\cmake-build-debug" --target RocksmithRPC -- -j 2
     const char* clientID = "452428491359649793";
+    std::cout << "Welcome to RocksmithRPC Version: " << versionNumber << std::endl;
+    std::cout << "Please report any issues on the github (www.github.com/Rocksmith-Discord-Rich-Presence)" << std::endl;
+    std::cout << "Thank you for using my program!" << std::endl << std::endl;
     std::cout << "Initialising Discord Listeners" << std::endl;
+    // std::cout << "Active Window: " << GetActiveWindow() << std::endl;
     InitDiscord(clientID);
     // while (GetActiveWindowTitle() == "Rocksmith2014")
     // {
