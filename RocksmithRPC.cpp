@@ -7,18 +7,21 @@
 #include <sstream>
 #include <vector>
 #include <windows.h>
-#include "discord_register.h"
 #include "discord_rpc.h"
-
-enum State { menuState, songState, tempState, quitState };
-static State currState = menuState;
-static State prevState = tempState;
 
 struct Song
 {
-    const char* songName;
-    const char* albumName;
+    std::string songName;
+    std::string albumName;
+    int64_t endTime;
 };
+
+enum State { menuState, songState, initState, quitState };
+State currState = initState;
+State prevState = initState;
+Song currSong;
+Song prevSong = currSong;
+double versionNumber = 2.0;
 
 static void printVariables(DiscordRichPresence s)
 {
@@ -79,7 +82,6 @@ static void InitDiscord(const char* clientID)
         std::cout << "\nClientID Not Set" << std::endl;
         Shutdown();
     }
-    // Discord_Initialize(const char* applicationId, DiscordEventHandlers* handlers, int autoRegister, const char* optionalSteamId)
     Discord_Initialize(clientID, &handlers, 1, "221680");
 }
 
@@ -104,7 +106,7 @@ static void UpdatePresence(const char* state, const char* details, const char* l
     if(std::time(nullptr) >= time && currState == songState)
     {
         currState = menuState;
-        //std::cout << "State changed to MenuState" << std::endl;
+        std::cout << "State changed to MenuState" << std::endl;
     }
 
     if (currState == songState)
@@ -182,18 +184,18 @@ static bool is_empty(std::ifstream& pFile)
 
 static bool isSongChange(Song currSong, Song prevSong)
 {
-    if (currSong.songName != prevSong.songName)
-        return true;
-    else if (currSong.albumName != prevSong.albumName)
-        return true;
+    // if (currSong.songName != prevSong.songName)
+    //     return true;
+    // else if (currSong.albumName != prevSong.albumName)
+    //     return true;
+    // else if (currSong.endTime != prevSong.endTime)
+    //     return true;
 
-    return false;
+    return (currSong.songName != prevSong.songName && currSong.albumName != prevSong.albumName);
 }
 
 static void FormatPresence()
 {
-    // static Song prevSong;
-    // static Song currSong;
     static int64_t time = std::time(nullptr);
     std::ostringstream songStr;
     std::ostringstream detailsStr;
@@ -201,22 +203,26 @@ static void FormatPresence()
     // if (isSongChange(currSong, prevSong)) //doesnt currently do anything
     //    currState = songState;
 
-    // currSong.albumName = getAlbumName();
-    // currSong.songName = getSongName();
+    currSong.albumName = getAlbumName();
+    currSong.songName = getSongName();
 
-    std::string currAlbumName = getAlbumName();
-    std::string currSongName = getSongName();
+    //std::string currAlbumName = getAlbumName();
+    // std::string currSongName = getSongName();
 
-    // std::cout << "Album Name: " << currAlbumName << std::endl;
-    // std::cout << "Song Name: " << currSongName << std::endl;
+    //  std::cout << "Album Name: " << currSong.albumName << std::endl;
+    //  std::cout << "Song Name: " << currSong.songName << std::endl;
 
-    if (currAlbumName != " " && currState == menuState && currState != songState && currSongName != " ")
+    if (!currSong.albumName.empty() && currState != songState && !currSong.songName.empty() && isSongChange(currSong, prevSong))
     {
         currState = songState;
-        //std::cout << "State changed to SongState" << std::endl;
+        std::cout << "State changed to SongState" << std::endl;
     }
 
-    if (isStateChanged())
+    if(currState == initState || currState == menuState)
+    {
+        UpdatePresence("Browsing Menus", "", "rocksmithlarge", "Rocksmith 2014 Remastered", "rocksmithsmall", "Created by OhhLoz", time);
+    }
+    else if (isStateChanged())
     {
         // std::cout << "Previous State = " << prevState << std::endl;
         // std::cout << "Current State = " << currState << std::endl;
@@ -226,15 +232,15 @@ static void FormatPresence()
                 UpdatePresence("Browsing Menus", "", "rocksmithlarge", "Rocksmith 2014 Remastered", "rocksmithsmall", "Created by OhhLoz", time);
                 break;
             case songState:
-                if(isFirstTimeSongPlaying())
+                if(isFirstTimeSongPlaying() || isSongChange(currSong, prevSong))
                 {
                     //std::cout<< "Start Time= " << time << std::endl;
                     time = getEndTime();
+                    currSong.endTime = time;
                     //std::cout << "End Time=" << time << std::endl;
                 }
-                //currSong.notes = getNotes();
-                songStr << "Playing: " << currSongName;
-                detailsStr << "On: " << currAlbumName;
+                songStr << "Playing: " << currSong.songName;
+                detailsStr << "On: " << currSong.albumName;
                 UpdatePresence(detailsStr.str().c_str(), songStr.str().c_str(), "album_cover", "Playing Rocksmith", "rocksmithsmall", "Created by OhhLoz", time);
                 break;
             case quitState:
@@ -247,13 +253,13 @@ static void FormatPresence()
     }
 
     prevState = currState;
-    //std::cout << "PrevState set to CurrState" << std::endl;
-    //prevSong = currSong;
-    // if (isStateChanged())
-    // {
-    //     std::cout << "End Previous State = " << prevState << std::endl;
-    //     std::cout << "End Current State = " << currState << std::endl;
-    // }
+    prevSong = currSong;
+    //std::cout << "PrevState & Song set to CurrState & Song" << std::endl;
+    //  if (isStateChanged())
+    //  {
+    //      std::cout << "End Previous State = " << prevState << std::endl;
+    //      std::cout << "End Current State = " << currState << std::endl;
+    //  }
 }
 
 int main(int argc, char const *argv[])
@@ -261,7 +267,11 @@ int main(int argc, char const *argv[])
     //Client ID: 452428491359649793
     //cmake --build "D:\Documents\Apps\Rocksmith Discord Rich Presence\cmake-build-debug" --target RocksmithRPC -- -j 2
     const char* clientID = "452428491359649793";
+    std::cout << "Welcome to RocksmithRPC Version: " << versionNumber << std::endl;
+    std::cout << "Please report any issues on the github (www.github.com/Rocksmith-Discord-Rich-Presence)" << std::endl;
+    std::cout << "Thank you for using my program!" << std::endl << std::endl;
     std::cout << "Initialising Discord Listeners" << std::endl;
+    // std::cout << "Active Window: " << GetActiveWindow() << std::endl;
     InitDiscord(clientID);
     // while (GetActiveWindowTitle() == "Rocksmith2014")
     // {
