@@ -239,8 +239,8 @@ static void FormatPresence()
                     currSong.endTime = time;
                     //std::cout << "End Time=" << time << std::endl;
                 }
-                songStr << currSong.songName;
-                detailsStr << currSong.albumName;
+                songStr << "Playing: " << currSong.songName;
+                detailsStr << "On: " << currSong.albumName;
                 UpdatePresence(detailsStr.str().c_str(), songStr.str().c_str(), "album_cover", "Playing Rocksmith", "rocksmithsmall", "Created by OhhLoz", time);
                 break;
             case quitState:
