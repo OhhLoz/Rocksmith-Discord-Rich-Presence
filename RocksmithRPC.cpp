@@ -13,6 +13,7 @@ struct Song
 {
     std::string songName;
     std::string albumName;
+    std::string accuracy;
     int64_t endTime;
 };
 
@@ -147,6 +148,16 @@ static std::string getAlbumName()
     return s.c_str();
 }
 
+ static std::string getAccuracy()
+ {
+     std::fstream accuracyFile;
+     accuracyFile.open("accuracy.txt", std::fstream::in);
+     std::string s;
+     std::getline(accuracyFile, s);
+     accuracyFile.close();
+     return s.c_str();
+ }
+
 static int64_t getEndTime()
 {
     std::fstream songtimerFile;
@@ -184,13 +195,6 @@ static bool is_empty(std::ifstream& pFile)
 
 static bool isSongChange(Song currSong, Song prevSong)
 {
-    // if (currSong.songName != prevSong.songName)
-    //     return true;
-    // else if (currSong.albumName != prevSong.albumName)
-    //     return true;
-    // else if (currSong.endTime != prevSong.endTime)
-    //     return true;
-
     return (currSong.songName != prevSong.songName && currSong.albumName != prevSong.albumName);
 }
 
@@ -199,12 +203,14 @@ static void FormatPresence()
     static int64_t time = std::time(nullptr);
     std::ostringstream songStr;
     std::ostringstream detailsStr;
+    std::ostringstream accuracyStr;
 
     // if (isSongChange(currSong, prevSong)) //doesnt currently do anything
     //    currState = songState;
 
     currSong.albumName = getAlbumName();
     currSong.songName = getSongName();
+    currSong.accuracy = getAccuracy();
 
     //std::string currAlbumName = getAlbumName();
     // std::string currSongName = getSongName();
@@ -241,7 +247,8 @@ static void FormatPresence()
                 }
                 songStr << currSong.songName;
                 detailsStr << currSong.albumName;
-                UpdatePresence(detailsStr.str().c_str(), songStr.str().c_str(), "album_cover", "Playing Rocksmith", "rocksmithsmall", "Created by OhhLoz", time);
+                accuracyStr << "Accuracy: " << currSong.accuracy << std::endl;
+                UpdatePresence(detailsStr.str().c_str(), songStr.str().c_str(), "album_cover", accuracyStr.str().c_str(), "rocksmithsmall", "Created by OhhLoz", time);
                 break;
             case quitState:
                 std::cout << "Shutting Down" << std::endl;
