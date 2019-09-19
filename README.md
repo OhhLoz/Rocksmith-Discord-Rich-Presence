@@ -1,3 +1,11 @@
+# This tool is now deprecated
+  
+## I recommend using the [Rocksniffer](https://github.com/kokolihapihvi/RockSniffer/releases) tool to which this used as it has discord rich presence built in
+  
+## Thank you to everyone who supported, downloaded & raised issues
+  
+  
+  
 # Rocksmith Discord Rich Presence
 
 Small Project to try to implement Discord RIch Presence to track Rocksmith Songs live.
